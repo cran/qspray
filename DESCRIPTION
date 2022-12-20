@@ -1,7 +1,7 @@
 Type: Package
 Package: qspray
 Title: Multivariate Polynomials with Rational Coefficients
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(
     person("Stéphane", "Laurent", , "laurent_step@outlook.fr", role = c("aut", "cre")),
     person("Robin", "Hankin", role = c("ctb", "cph"),
@@ -21,9 +21,9 @@ RoxygenNote: 7.2.3
 SystemRequirements: C++ 17, gmp, mpfr
 Collate: 'RcppExports.R' 'internal.R' 'qspray.R' 'yacas.R'
 NeedsCompilation: yes
-Packaged: 2022-12-15 07:57:34 UTC; stla
+Packaged: 2022-12-19 14:01:23 UTC; stla
 Author: Stéphane Laurent [aut, cre],
   Robin Hankin [ctb, cph] (author of the 'spray' package, which strongly
     inspired this package)
 Repository: CRAN
-Date/Publication: 2022-12-15 11:00:06 UTC
+Date/Publication: 2022-12-21 00:20:02 UTC
