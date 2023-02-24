@@ -1,9 +1,9 @@
-156bfdc9539a84be8810bbf0aeb392e2 *DESCRIPTION
-55798f8b847780a6f5005743594e6435 *NAMESPACE
-abdb7d14d4df6ab2631707dbc1b1cefa *NEWS.md
-d332696ba6225e8b53b77bc60d7355b9 *R/RcppExports.R
-87dabcb719dc66b895bc9beccbeaec56 *R/internal.R
-a7e870bd94b890053043f6be8c57b16c *R/qspray.R
+5939d0fb73dd0eca72786eae177d5d34 *DESCRIPTION
+490fbd995d5fd30efdb5d95e7cab7f8d *NAMESPACE
+9a4f5338595fb6edc4825b0b611fa5a2 *NEWS.md
+a65312e58245d306dbc3a80a739c9678 *R/RcppExports.R
+8b229e7f176a9e11de231cde2d962386 *R/internal.R
+64cc8d634112f2e2361bf8216ba7f39b *R/qspray.R
 ef56f96f83e844ba6d7f5ad507bb0fcb *R/yacas.R
 c9bbcf93b042b0220114366c5340b48a *README.md
 f3eed5a59dcac9b0fba8055bb8c27540 *cleanup
@@ -12,6 +12,8 @@ f747450d49f5afd816115acc49b542e3 *configure
 30f74e53e4e5d5cf5a45746a4fc9c304 *man/MSFpoly.Rd
 d66e3422c7b2f5170a1de1811a5c8929 *man/as.function.qspray.Rd
 d5a4a4bb5978dccff9e749b9ea9bda91 *man/as.qspray.Rd
+da1827d583f02b82fd0a845eb0011c51 *man/dQspray.Rd
+0d48ccfd87fb0d958be7d6af568cc2f7 *man/derivQspray.Rd
 00043f7de8c9fefad4f3a97520974047 *man/evalQspray.Rd
 ba76ba77abb962eb5610de4b45dc7378 *man/integratePolynomialOnSimplex.Rd
 e701b70dc725a8e475827d632a6f6bb4 *man/prettyQspray.Rd
@@ -21,5 +23,5 @@ ef43a5b83376d60012b478da8f2dd40a *man/qspray-unary.Rd
 7a349d210d4d5eca01aa40962c1488e9 *man/qsprayMaker.Rd
 70cfe72ff54b4c38e72518384a28ebba *src/Makevars.in
 556473f1ce28dace65b77804fcc961e1 *src/Makevars.win
-51986dd3d7352dfd6e3e390d54fbd8fe *src/RcppExports.cpp
-fd55329056e6c9d9a1c24ad79c7bbd4b *src/qspray.cpp
+485202b530e9eeb831124c1088b984af *src/RcppExports.cpp
+44c8ff3d603a02bedb822dda34ebf0ef *src/qspray.cpp

@@ -227,6 +227,60 @@ Rcpp::List retval(const qspray& S) {  // used to return a list to R
 
 // -------------------------------------------------------------------------- //
 // [[Rcpp::export]]
+Rcpp::List qspray_deriv(
+    const Rcpp::List& Powers, const Rcpp::StringVector& coeffs,   
+    const Rcpp::IntegerVector& n
+){
+  qspray S;
+  powers v;
+  signed int i, j, J, nj, expnt;
+  signed int N = n.size();
+  signed int nterms = coeffs.size();
+  std::vector<std::vector<signed int>> Powers_out(nterms);
+  std::vector<signed int> sizes(nterms);
+
+  for(i = 0 ; i < nterms; i++) {
+    Rcpp::IntegerVector Exponents = Powers(i);
+    J = Exponents.size();
+    sizes[i] = J;
+    Powers_out[i].reserve(J);
+    for(j = 0 ; j < J; j++){
+      Powers_out[i].emplace_back(Exponents(j));
+    }
+  }
+  
+  for(i = 0; i < nterms; i++) {
+    std::vector<signed int> exponents = Powers_out[i];
+    J = sizes[i];
+    if(J < N) {
+      continue;
+    }
+    gmpq coeff(Rcpp::as<std::string>(coeffs(i)));
+    for(j = 0; j < N; j++) {
+      nj = n(j);
+      while((nj > 0) && (coeff != 0)) { // while loop because it might not run at all
+        coeff *= exponents[j]; // multiply coeff first, then decrement exponent 
+        exponents[j]--;
+        nj--;
+      }
+    }
+    if(coeff != 0) {
+      v.clear();
+      for(j = 0; j < J; j++) {
+        expnt = exponents[j];
+        v.push_back(expnt);
+      }
+      simplifyPowers(v);
+      S[v] += coeff;  // increment because v is not row-unique any more
+    }
+  }  // i loop closes
+  
+  return retval(S);
+}
+
+
+// -------------------------------------------------------------------------- //
+// [[Rcpp::export]]
 Rcpp::List qspray_maker(const Rcpp::List& Powers,
                         const Rcpp::StringVector& coeffs) {
   return retval(prepare(Powers, coeffs));

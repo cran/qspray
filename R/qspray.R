@@ -145,7 +145,7 @@ evalQspray <- function(qspray, values_re, values_im = NULL) {
   if(length(powers) == 0L) {
     return(as.bigq(0L))
   }
-  n <- max(lengths(powers))
+  n <- arity(qspray)
   if(length(values_re) < n) {
     stop("Insufficient number of values.")
   }
@@ -161,7 +161,7 @@ evalQspray <- function(qspray, values_re, values_im = NULL) {
     if(!check) {
       stop("Invalid vector `values_im`.")
     }
-    result <- evalQxspray(qspray@powers, qspray@coeffs, values_re, values_im)
+    result <- evalQxspray(powers, qspray@coeffs, values_re, values_im)
     return(as.bigq(result))
   }
   coeffs <- as.bigq(qspray@coeffs)
@@ -306,6 +306,65 @@ qspray_arith_qspray <- function(e1, e2) {
 qsprayPower <- function(qspray, n) {
   stopifnot(isPositiveInteger(n))
   qspray_power(qspray@powers, qspray@coeffs, n)
+}
+
+#' @title Partial derivative
+#' @description Partial derivative of a qspray polynomial.
+#'
+#' @param qspray object of class \code{qspray}
+#' @param i integer, the dimension to differentiate with respect to
+#' @param derivative integer, how many times to differentiate
+#'
+#' @return A \code{qspray} object.
+#' @export
+#'
+#' @examples
+#' library(qspray)
+#' x <- qlone(1)
+#' y <- qlone(2)
+#' qspray <- 2*x  + 3*x*y
+#' derivQspray(qspray, 1)
+derivQspray <- function(qspray, i, derivative = 1) {
+  stopifnot(inherits(qspray, "qspray"))
+  stopifnot(isNonnegativeInteger(i))
+  stopifnot(isPositiveInteger(derivative))
+  if(i > arity(qspray)) {
+    return(as.qspray(0))
+  }
+  n    <- integer(length = i)
+  n[i] <- as.integer(derivative)
+  drv  <- qspray_deriv(qspray@powers, qspray@coeffs, n)
+  qspray_from_list(drv)
+}
+
+#' @title Partial differentiation
+#' @description Partial differentiation of a qspray polynomial.
+#'
+#' @param qspray object of class \code{qspray}
+#' @param orders integer vector, the orders of the differentiation
+#'
+#' @return A \code{qspray} object.
+#' @export
+#'
+#' @examples
+#' library(qspray)
+#' x <- qlone(1)
+#' y <- qlone(2)
+#' qspray <- x + 2*y  + 3*x*y
+#' dQspray(qspray, c(1, 1))
+#' derivQspray(derivQspray(qspray, 1), 2)
+dQspray <- function(qspray, orders) {
+  stopifnot(inherits(qspray, "qspray"))
+  for(i in seq_along(orders)) {
+    stopifnot(isPositiveInteger(orders[i]))
+  }
+  orders <- removeTrailingZeros(orders)
+  if(length(orders) > arity(qspray)) {
+    return(as.qspray(0))
+  }
+  n    <- as.integer(orders)
+  drv  <- qspray_deriv(qspray@powers, qspray@coeffs, n)
+  qspray_from_list(drv)
 }
 
 qspray_arith_character <- function(e1, e2) {
