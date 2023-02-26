@@ -1,6 +1,6 @@
-5939d0fb73dd0eca72786eae177d5d34 *DESCRIPTION
+03ba0846666e721f8d870b3d0236a509 *DESCRIPTION
 490fbd995d5fd30efdb5d95e7cab7f8d *NAMESPACE
-9a4f5338595fb6edc4825b0b611fa5a2 *NEWS.md
+bc104d441daf7ed4c4416f9505b310db *NEWS.md
 a65312e58245d306dbc3a80a739c9678 *R/RcppExports.R
 8b229e7f176a9e11de231cde2d962386 *R/internal.R
 64cc8d634112f2e2361bf8216ba7f39b *R/qspray.R
@@ -24,4 +24,4 @@ ef43a5b83376d60012b478da8f2dd40a *man/qspray-unary.Rd
 70cfe72ff54b4c38e72518384a28ebba *src/Makevars.in
 556473f1ce28dace65b77804fcc961e1 *src/Makevars.win
 485202b530e9eeb831124c1088b984af *src/RcppExports.cpp
-44c8ff3d603a02bedb822dda34ebf0ef *src/qspray.cpp
+427f66dec7766bdfb64dee7a77dc0780 *src/qspray.cpp
