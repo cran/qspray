@@ -281,7 +281,10 @@ setMethod(
   "-", 
   signature(e1 = "qspray", e2 = "missing"), 
   function(e1, e2) {
-    new("qspray", powers = e1@powers, coeffs = as.character(as.bigq(e1@coeffs)))
+    new(
+      "qspray", 
+      powers = e1@powers, coeffs = as.character(-as.bigq(e1@coeffs))
+    )
   }
 )
 
@@ -386,7 +389,7 @@ qspray_arith_gmp <- function(e1, e2) {
     "+" = e1 + as_qspray_gmp(e2),
     "-" = e1 - as_qspray_gmp(e2),
     "*" = e1 * as_qspray_gmp(e2),
-    "/" = e1 / as.character(e2),
+    "/" = e1 * as_qspray_gmp(1L/e2),
     stop(gettextf(
       "Binary operator %s not defined for these two objects.", dQuote(.Generic)
     ))
@@ -511,6 +514,22 @@ setMethod(
     )
   }
 )
+
+#' @title The null qspray polynomial
+#' @description Returns the qspray polynomial identically equal to 0.
+#' @return A \code{qspray} object.
+#' @export
+qzero <- function() {
+  as.qspray(0L)
+}
+
+#' @title The unit qspray polynomial
+#' @description Returns the qspray polynomial identically equal to 1.
+#' @return A \code{qspray} object.
+#' @export
+qone <- function() {
+  as.qspray(1L)
+}
 
 #' @title Integral of a multivariate polynomial over a simplex
 #' @description Returns the exact value of the integral of a multivariate 
