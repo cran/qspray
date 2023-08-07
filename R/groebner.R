@@ -2,6 +2,23 @@ grow <- function(powers, n) {
   c(powers, integer(n - length(powers)))
 }
 
+lexorder <- function(M){
+  do.call(
+    function(...) order(..., decreasing = TRUE), 
+    lapply(seq_len(ncol(M)), function(i) M[, i])
+  )
+}
+
+orderedQspray <- function(qspray, d) {
+  powers <- qspray@powers
+  Mpowers <- do.call(rbind, lapply(powers, grow, n = d))
+  ordr <- lexorder(Mpowers)
+  list(
+    "powers" = Mpowers[ordr, , drop = FALSE], 
+    "coeffs" = qspray@coeffs[ordr]
+  )
+}
+
 lexLeading <- function(M, i = 1L, b = seq_len(nrow(M))) {
   if(nrow(M) == 1L || i > ncol(M)) {
     b[1L]
@@ -15,7 +32,7 @@ lexLeading <- function(M, i = 1L, b = seq_len(nrow(M))) {
 leading <- function(qspray, d) {
   powers <- qspray@powers
   Mpowers <- do.call(rbind, lapply(powers, grow, n = d))
-  i <- lexLeading(Mpowers)
+  i <- lexLeadingArma(Mpowers)
   list("powers" = Mpowers[i, ], "coeff" = qspray@coeffs[i])
 }
 
@@ -101,22 +118,24 @@ qdivision <- function(qspray, divisors, check = TRUE) {
     return(qzero())
   }
   
+  # we store the successive leading terms in LTs_f
   d <- max(arity(qspray), max(vapply(divisors, arity, integer(1L))))
-
+  oqspray <- orderedQspray(qspray, d)
+  opowers <- oqspray[["powers"]]
+  ocoeffs <- as.bigq(oqspray[["coeffs"]])
+  LTs_f <- lapply(seq_along(ocoeffs), function(i) {
+    list("powers" = opowers[i, ], "coeff" = ocoeffs[i])
+  })
+  
   ndivisors <- length(divisors)
   nterms <- length(qspray@coeffs)
-  LTs_f <- vector("list", nterms) # to store the successive leading terms
+
   qgs <- list() # to store the products q*g_i, in order to check at the end
-  quotients <- list()
+  quotients <- list() # to store the quotients
   
   cur <- qspray
   for(k in 1L:nterms) {
-    # take the next leading term of f
-    tmp <- qspray
-    for(j in seq_len(k-1L)) {
-      tmp <- tmp - termAsQspray(LTs_f[[j]])
-    }
-    LTs_f[[k]] <- leadingTerm(tmp, d) -> LT_cur
+    LT_cur <- LTs_f[[k]]
     i <- 1L
     while(i <= ndivisors) {
       g <- divisors[[i]]
@@ -169,6 +188,30 @@ qdivision <- function(qspray, divisors, check = TRUE) {
   remainder
 }
 
+# internal division for Buchberger algorithm
+BBdivision <- function(qspray, divisors, LTdivisors) {
+  if(qspray == qzero()) {
+    return(qzero())
+  }
+  # we store the successive leading terms in LTs_f
+  d <- max(arity(qspray), max(vapply(divisors, arity, integer(1L))))
+  # oqspray <- orderedQspray(qspray, d)
+  # opowers <- oqspray[["powers"]]
+  # ocoeffs <- oqspray[["coeffs"]]
+  # LTs_f <- lapply(seq_along(ocoeffs), function(i) {
+  #   list("powers" = opowers[i, ], "coeff" = ocoeffs[i])
+  # })
+  gs <- lapply(divisors, function(qspr) {
+    list("powers" = qspr@powers, "coeffs" = qspr@coeffs)
+  })
+  Powers <- qspray@powers
+  coeffs <- qspray@coeffs
+  outList <- BBdivisionRcpp(
+    Powers, coeffs, gs, LTdivisors, d
+  )
+  qspray_from_list(outList)  
+}
+
 #' @title Gröbner basis
 #' @description Returns a Gröbner basis following Buchberger's algorithm 
 #'   using the lexicographical order.
@@ -197,28 +240,31 @@ qdivision <- function(qspray, divisors, check = TRUE) {
 #' gb <- groebner(list(f1, f2, f3))
 #' lapply(gb, prettyQspray, vars = c("x", "y", "z"))}
 groebner <- function(G, minimal = TRUE, reduced = TRUE) {
+  d <- max(vapply(G, arity, integer(1L)))
+  LT_G <- lapply(G, leading, d = d)
   Ss <- list()
   j <- length(G)
   combins <- combn(j, 2L)
   i <- 1L
-  while(i <= ncol(combins)) {
-    combin <- combins[, i]
-    id <- paste0(combin[1L], "-", combin[2L])
-    if(id %in% names(Ss)) {
-      Sfg <- Ss[[id]]
-    } else {
-      Sfg <- S(G[[combin[1L]]], G[[combin[2L]]])
-      Ss_new <- list(Sfg)
-      names(Ss_new) <- id
-      Ss <- c(Ss, Ss_new)
-    }
-    Sbar_fg <- qdivision(Sfg, G)
+  indices <- 1L:ncol(combins)
+  while(i <= length(indices)) {
+    combin <- combins[, indices[i]]
+    Sfg <- S(G[[combin[1L]]], G[[combin[2L]]])
+    Ss_new <- list(Sfg)
+    names(Ss_new) <- paste0(combin[1L], "-", combin[2L])
+    Ss <- c(Ss, Ss_new)
+    d <- max(d, arity(Sfg))
+    Sbar_fg <- BBdivision(Sfg, G, LT_G)
     i <- i + 1L
     if(Sbar_fg != qzero()) {
       i <- 1L
       G <- append(G, Sbar_fg)
+	    d <- max(d, arity(Sbar_fg))
+      LT_G <- append(LT_G, list(leading(Sbar_fg, d)))
       j <- j + 1L
       combins <- combn(j, 2L)
+      allids <- paste0(combins[1L, ], "-", combins[2L, ])
+      indices <- which(!is.element(allids, names(Ss)))
     }
   }
   #
@@ -243,7 +289,7 @@ groebner <- function(G, minimal = TRUE, reduced = TRUE) {
         G[[i]] <- G[[i]] / leadingTerm(G[[i]], d)[["coeff"]]
       }
     }
-    #
+    # reduction
     if(reduced && length(G) > 1L) {
       indices <- seq_along(G)
       for(i in indices) {
@@ -253,4 +299,83 @@ groebner <- function(G, minimal = TRUE, reduced = TRUE) {
     }
   }
   G
+}
+
+#' @title Implicitization with Gröbner bases
+#' @description Implicitization of a system of parametric equations 
+#'   (see examples).
+#'
+#' @param nvariables number of variables
+#' @param parameters character vector of the names of the parameters, or 
+#'   \code{NULL} if there's no parameter
+#' @param equations list of qspray polynomials representing the parametric 
+#'   equations
+#' @param relations list of qspray polynomials representing the relations 
+#'   between the variables and the parameters, or \code{NULL} if there is none
+#'
+#' @return A list of qspray polynomials.
+#' @export
+#' @importFrom utils tail
+#'
+#' @examples
+#' library(qspray)
+#' # ellipse example ####
+#' # variables 
+#' cost <- qlone(1)
+#' sint <- qlone(2)
+#' # parameters
+#' a <- qlone(3)
+#' b <- qlone(4)
+#' #
+#' nvariables <- 2
+#' parameters <- c("a", "b")
+#' equations <- list(
+#'   "x" = a * cost,
+#'   "y" = b * sint
+#' )
+#' relations <- list(
+#'   cost^2 + sint^2 - 1
+#' )
+#' # 
+#' eqs <- implicitization(nvariables, parameters, equations, relations)
+implicitization <- function(nvariables, parameters, equations, relations) {
+  stopifnot(isPositiveInteger(nvariables))
+  stopifnot(is.null(parameters) || isStringVector(parameters))
+  stopifnot(is.list(equations), length(equations) > 1L)
+  stopifnot(is.null(relations) || is.list(relations))
+  #
+  nequations <- length(equations)
+  nrelations <- length(relations)
+  nqlone <- max(vapply(equations, arity, integer(1L)))
+  coordinates <- lapply((nqlone+1L):(nqlone+nequations), qlone)
+  generators <- relations
+  for(i in seq_along(equations)) {
+    generators <- append(generators, coordinates[[i]] - equations[[i]])
+  }
+  #
+  gb <- groebner(generators)
+  isfree <- function(i) {
+    all(vapply(gb[[i]]@powers, function(pows) {
+      length(pows) == 0L || 
+        (length(pows > nvariables) && all(pows[1L:nvariables] == 0L))
+    }, logical(1L)))
+  }
+  free <- c(FALSE, vapply(2L:length(gb), isfree, logical(1L)))
+  #
+  results <- gb[free]
+  for(i in seq_along(results)) {
+    el <- results[[i]]
+    coeffs <- el@coeffs
+    powers <- el@powers
+    for(j in seq_along(powers)) {
+      powers[[j]] <- tail(powers[[j]], -nvariables)
+    }
+    results[[i]] <- qsprayMaker(powers, coeffs)
+  }
+  vars <- c(parameters, names(equations))
+  messages <- lapply(results, prettyQspray, vars = vars)
+  for(msg in messages) {
+    message(msg)
+  }
+  invisible(results)
 }
