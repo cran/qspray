@@ -15,6 +15,14 @@ showQspray <- function(qspray) {
   if(length(qspray@coeffs) == 0L) {
     return("0")
   }
+  
+  M <- do.call(rbind, lapply(qspray@powers, grow, n = arity(qspray)))
+  if(ncol(M) > 0L) {
+    lex <- lexorder(M)
+    qspray@powers <- qspray@powers[lex]
+    qspray@coeffs <- qspray@coeffs[lex]
+  }
+  
   powers <- vapply(qspray@powers, toString, FUN.VALUE = character(1L))
   coeffs <- as.bigq(qspray@coeffs)
   plus <- vapply(coeffs, function(x) x >= 0, FUN.VALUE = logical(1L))
