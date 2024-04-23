@@ -1,23 +1,12 @@
-grow <- function(powers, n) {
-  c(powers, integer(n - length(powers)))
-}
-
-lexorder <- function(M){
-  do.call(
-    function(...) order(..., decreasing = TRUE), 
-    lapply(seq_len(ncol(M)), function(i) M[, i])
-  )
-}
-
-orderedQspray <- function(qspray, d) {
-  powers <- qspray@powers
-  Mpowers <- do.call(rbind, lapply(powers, grow, n = d))
-  ordr <- lexorder(Mpowers)
-  list(
-    "powers" = Mpowers[ordr, , drop = FALSE], 
-    "coeffs" = qspray@coeffs[ordr]
-  )
-}
+# orderedQspray <- function(qspray, d) {
+#   powers <- qspray@powers
+#   Mpowers <- do.call(rbind, lapply(powers, grow, n = d))
+#   ordr <- lexorder(Mpowers)
+#   list(
+#     "powers" = Mpowers[ordr, , drop = FALSE], 
+#     "coeffs" = qspray@coeffs[ordr]
+#   )
+# }
 
 lexLeading <- function(M, i = 1L, b = seq_len(nrow(M))) {
   if(nrow(M) == 1L || i > ncol(M)) {
@@ -90,12 +79,8 @@ termAsQspray <- function(term) {
 #' 
 #' @param qspray the dividend, a \code{qspray} object 
 #' @param divisors the divisors, a list of \code{qspray} objects
-#' @param check Boolean, whether to check the division; this argument will be 
-#'   removed in a future version
 #'
-#' @return The remainder of the division, a \code{qspray} object. Moreover, 
-#'   if \code{qspray} is univariate, the quotient is attached to the remainder 
-#'   as an attribute.
+#' @return The remainder of the division, a \code{qspray} object. 
 #' @export
 #'
 #' @references 
@@ -108,84 +93,84 @@ termAsQspray <- function(term) {
 #' x <- qlone(1)
 #' f <- x^4 - 4*x^3 + 4*x^2 - x # 0 and 1 are trivial roots
 #' g <- x * (x - 1)
-#' ( r <- qdivision(f, list(g)) ) # should be zero
-#' attr(r, "quotient")
-qdivision <- function(qspray, divisors, check = TRUE) {
-  
+#' qdivision(f, list(g)) # should be zero
+qdivision <- function(qspray, divisors) {
   stopifnot(is.list(divisors))
-  
   if(qspray == qzero()) {
     return(qzero())
   }
+  d <- max(vapply(divisors, arity, integer(1L)))
+  LTdivisors <- lapply(divisors, leading, d = d)
+  BBdivision(qspray, divisors, LTdivisors)
   
-  # we store the successive leading terms in LTs_f
-  d <- max(arity(qspray), max(vapply(divisors, arity, integer(1L))))
-  oqspray <- orderedQspray(qspray, d)
-  opowers <- oqspray[["powers"]]
-  ocoeffs <- as.bigq(oqspray[["coeffs"]])
-  LTs_f <- lapply(seq_along(ocoeffs), function(i) {
-    list("powers" = opowers[i, ], "coeff" = ocoeffs[i])
-  })
-  
-  ndivisors <- length(divisors)
-  nterms <- length(qspray@coeffs)
-
-  qgs <- list() # to store the products q*g_i, in order to check at the end
-  quotients <- list() # to store the quotients
-  
-  cur <- qspray
-  for(k in 1L:nterms) {
-    LT_cur <- LTs_f[[k]]
-    i <- 1L
-    while(i <= ndivisors) {
-      g <- divisors[[i]]
-      LT_g <- leadingTerm(g, d)
-      while(divides(LT_g, LT_cur)) {
-        q <- quotient(LT_cur, LT_g)
-        quotients <- append(quotients, q)
-        qgs <- append(qgs, q * g)
-        cur <- cur - q * g
-        if(cur == qzero()) {
-          if(check) {
-            sum_qgs <- qzero()
-            for(i in seq_along(qgs)) {
-              sum_qgs <- sum_qgs + qgs[[i]]
-            }
-            stopifnot(sum_qgs == qspray)
-          }
-          remainder <- qzero()
-          if(d == 1L) {
-            qtnt <- qzero()
-            for(i in seq_along(quotients)) {
-              qtnt <- qtnt + quotients[[i]]
-            }
-            attr(remainder, "quotient") <- qtnt
-          }
-          return(remainder)
-        }
-        LT_cur <- leadingTerm(cur, d)
-      }
-      i <- i + 1L
-    }
-  }
-  # check
-  if(check) {
-    sum_qgs <- qzero()
-    for(i in seq_along(qgs)) {
-      sum_qgs <- sum_qgs + qgs[[i]]
-    }
-    stopifnot(qspray == sum_qgs + cur)
-  }
-  # return remainder
-  remainder <- cur
-  if(d == 1L) {
-    qtnt <- qzero()
-    for(i in seq_along(quotients)) {
-      qtnt <- qtnt + quotients[[i]]
-    }
-    attr(remainder, "quotient") <- qtnt
-  }
-  remainder
+  # # we store the successive leading terms in LTs_f
+  # d <- max(arity(qspray), max(vapply(divisors, arity, integer(1L))))
+  # oqspray <- orderedQspray(qspray, d)
+  # opowers <- oqspray[["powers"]]
+  # ocoeffs <- as.bigq(oqspray[["coeffs"]])
+  # LTs_f <- lapply(seq_along(ocoeffs), function(i) {
+  #   list("powers" = opowers[i, ], "coeff" = ocoeffs[i])
+  # })
+  # 
+  # ndivisors <- length(divisors)
+  # nterms <- length(qspray@coeffs)
+  # 
+  # qgs <- list() # to store the products q*g_i, in order to check at the end
+  # quotients <- list() # to store the quotients
+  # 
+  # cur <- qspray
+  # for(k in 1L:nterms) {
+  #   LT_cur <- LTs_f[[k]]
+  #   i <- 1L
+  #   while(i <= ndivisors) {
+  #     g <- divisors[[i]]
+  #     LT_g <- leadingTerm(g, d)
+  #     while(divides(LT_g, LT_cur)) {
+  #       q <- quotient(LT_cur, LT_g)
+  #       quotients <- append(quotients, q)
+  #       qgs <- append(qgs, q * g)
+  #       cur <- cur - q * g
+  #       if(cur == qzero()) {
+  #         if(check) {
+  #           sum_qgs <- qzero()
+  #           for(i in seq_along(qgs)) {
+  #             sum_qgs <- sum_qgs + qgs[[i]]
+  #           }
+  #           stopifnot(sum_qgs == qspray)
+  #         }
+  #         remainder <- qzero()
+  #         if(d == 1L) {
+  #           qtnt <- qzero()
+  #           for(i in seq_along(quotients)) {
+  #             qtnt <- qtnt + quotients[[i]]
+  #           }
+  #           attr(remainder, "quotient") <- qtnt
+  #         }
+  #         return(remainder)
+  #       }
+  #       LT_cur <- leadingTerm(cur, d)
+  #     }
+  #     i <- i + 1L
+  #   }
+  # }
+  # # check
+  # if(check) {
+  #   sum_qgs <- qzero()
+  #   for(i in seq_along(qgs)) {
+  #     sum_qgs <- sum_qgs + qgs[[i]]
+  #   }
+  #   stopifnot(qspray == sum_qgs + cur)
+  # }
+  # # return remainder
+  # remainder <- cur
+  # if(d == 1L) {
+  #   qtnt <- qzero()
+  #   for(i in seq_along(quotients)) {
+  #     qtnt <- qtnt + quotients[[i]]
+  #   }
+  #   attr(remainder, "quotient") <- qtnt
+  # }
+  # remainder
 }
 
 # internal division for Buchberger algorithm
@@ -212,6 +197,14 @@ BBdivision <- function(qspray, divisors, LTdivisors) {
   qspray_from_list(outList)  
 }
 
+combn2 <- function(j, s) {
+  allCombs <- rbind(
+    do.call(c, lapply(1L:(j-1L), function(i) 1L:i)),
+    rep(2L:j, times = 1L:(j-1L))  
+  )
+  allCombs[, (s+1L):ncol(allCombs), drop = FALSE]
+}
+
 #' @title Gröbner basis
 #' @description Returns a Gröbner basis following Buchberger's algorithm 
 #'   using the lexicographical order.
@@ -221,7 +214,6 @@ BBdivision <- function(qspray, divisors, LTdivisors) {
 #' @return A Gröbner basis of the ideal generated by \code{G}, given as a list 
 #'   of qspray polynomials.
 #' @export
-#' @importFrom utils combn
 #' @references 
 #' Cox, Little & O'Shea. 
 #' \emph{Ideals, Varieties, and Algorithms. 
@@ -240,31 +232,29 @@ BBdivision <- function(qspray, divisors, LTdivisors) {
 #' gb <- groebner(list(f1, f2, f3))
 #' lapply(gb, prettyQspray, vars = c("x", "y", "z"))}
 groebner <- function(G, minimal = TRUE, reduced = TRUE) {
-  d <- max(vapply(G, arity, integer(1L)))
+  # d <- max(vapply(G, arity, integer(1L)))
+  d <- max(vapply(G, numberOfVariables, integer(1L)))
   LT_G <- lapply(G, leading, d = d)
   Ss <- list()
   j <- length(G)
-  combins <- combn(j, 2L)
+  combins <- combn2(j, 0L)
   i <- 1L
-  indices <- 1L:ncol(combins)
-  while(i <= length(indices)) {
-    combin <- combins[, indices[i]]
+  l <- ncol(combins)
+  while(i <= l) {
+    combin <- combins[, i]
     Sfg <- S(G[[combin[1L]]], G[[combin[2L]]])
-    Ss_new <- list(Sfg)
-    names(Ss_new) <- paste0(combin[1L], "-", combin[2L])
-    Ss <- c(Ss, Ss_new)
     d <- max(d, arity(Sfg))
     Sbar_fg <- BBdivision(Sfg, G, LT_G)
-    i <- i + 1L
     if(Sbar_fg != qzero()) {
-      i <- 1L
       G <- append(G, Sbar_fg)
 	    d <- max(d, arity(Sbar_fg))
       LT_G <- append(LT_G, list(leading(Sbar_fg, d)))
       j <- j + 1L
-      combins <- combn(j, 2L)
-      allids <- paste0(combins[1L, ], "-", combins[2L, ])
-      indices <- which(!is.element(allids, names(Ss)))
+      combins <- combn2(j, i)
+      l <- ncol(combins)
+      i <- 1L
+    } else {
+      i <- i + 1L
     }
   }
   #
@@ -378,4 +368,54 @@ implicitization <- function(nvariables, parameters, equations, relations) {
     message(msg)
   }
   invisible(results)
+}
+
+#' @title Whether a 'qspray' is a polynomial of some given 'qsprays'
+#' @description Checks whether a \code{qspray} polynomial can be written as 
+#'   a polynomial of some given \code{qspray} polynomials. If \code{TRUE}, 
+#'   this polynomial is returned.
+#' 
+#' @param qspray a \code{qspray} object
+#' @param qsprays a list of \code{qspray} objects
+#'
+#' @return A Boolean value indicating whether the polynomial defined by 
+#'   \code{qspray} can be written as a polynomial of the polynomials defined 
+#'   by the \code{qspray} objects given in the \code{qsprays} list. If this is 
+#'   \code{TRUE}, this polynomial is returned as an attribute named 
+#'   \code{"polynomial"}.
+#' @export
+#'
+#' @examples
+#' library(qspray)
+#' P <- function(X, Y) X^2*Y + 2*X + 3
+#' x <- qlone(1); y <- qlone(2); z <- qlone(3)
+#' q1 <- x + y
+#' q2 <- x*z^2 + 4
+#' qspray <- P(q1, q2)
+#' ( check <- isPolynomialOf(qspray, list(q1, q2)) )
+#' POLYNOMIAL <- attr(check, "polynomial")
+#' composeQspray(POLYNOMIAL, list(q1, q2)) == qspray # should be TRUE
+isPolynomialOf <- function(qspray, qsprays) {
+  n <- max(vapply(qsprays, numberOfVariables, integer(1L)))
+  if(numberOfVariables(qspray) > n) {
+    return(FALSE)
+  }
+  i_ <- seq_len(length(qsprays))
+  G <- lapply(i_, function(i) qsprays[[i]] - qlone(n + i))
+  B <- groebner(G, TRUE, FALSE)
+  constantTerm <- getCoefficient(qspray, integer(0L))
+  g <- qdivision(qspray - constantTerm, B)
+  check <- all(vapply(g@powers, function(pwr) {
+    length(pwr) > n && all(pwr[1L:n] == 0L)
+  }, logical(1L)))
+  if(!check) {
+    return(FALSE)
+  }
+  powers <- lapply(g@powers, function(pwr) {
+    pwr[-(1L:n)]
+  })
+  P <- qsprayMaker(powers, g@coeffs) + constantTerm
+  out <- TRUE
+  attr(out, "polynomial") <- P
+  out
 }

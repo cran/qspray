@@ -1,7 +1,7 @@
 Type: Package
 Package: qspray
 Title: Multivariate Polynomials with Rational Coefficients
-Version: 2.1.1
+Version: 3.0.0
 Authors@R: c(
     person("Stéphane", "Laurent", , "laurent_step@outlook.fr", role = c("aut", "cre")),
     person("Robin", "Hankin", role = c("ctb", "cph"),
@@ -10,24 +10,30 @@ Authors@R: c(
 Maintainer: Stéphane Laurent <laurent_step@outlook.fr>
 Description: Symbolic calculation and evaluation of multivariate
     polynomials with rational coefficients. This package is strongly
-    inspired by the 'spray' package. It also provides a function to 
+    inspired by the 'spray' package. It provides a function to 
     compute Gröbner bases (reference <doi:10.1007/978-3-319-16721-3>).
+    The header file of the C++ code can be used by other packages. It 
+    provides the templated class 'Qspray' that can be used to represent and 
+    to deal with multivariate polynomials with another type of coefficients.
 License: GPL-3
 URL: https://github.com/stla/qspray
 BugReports: https://github.com/stla/qspray/issues
-Imports: DescTools, gmp, methods, purrr, RationalMatrix, Rcpp (>=
-        1.0.9), Ryacas, utils
+Imports: DescTools, gmp, methods, partitions, purrr, RationalMatrix,
+        Rcpp (>= 1.0.9), Ryacas, utils
 LinkingTo: BH, Rcpp, RcppArmadillo
 Encoding: UTF-8
-RoxygenNote: 7.2.3
-SystemRequirements: C++ 17, gmp, mpfr
-Collate: 'RcppExports.R' 'groebner.R' 'internal.R' 'qspray.R' 'yacas.R'
+RoxygenNote: 7.3.1
+SystemRequirements: C++17, gmp
+Collate: 'RcppExports.R' 'characteristicPolynomial.R' 'creation.R'
+        'evaluation.R' 'groebner.R' 'integrateOnSimplex.R' 'internal.R'
+        'qspray.R' 'qsprayDivision.R' 'queries.R' 'show.R'
+        'symmetricPolynomials.R' 'transformation.R' 'yacas.R'
 Suggests: testthat (>= 3.0.0)
 Config/testthat/edition: 3
 NeedsCompilation: yes
-Packaged: 2023-09-07 08:34:26 UTC; SDL96354
+Packaged: 2024-04-23 00:23:46 UTC; SDL96354
 Author: Stéphane Laurent [aut, cre],
   Robin Hankin [ctb, cph] (author of the 'spray' package, which strongly
     inspired this package)
 Repository: CRAN
-Date/Publication: 2023-09-07 16:20:02 UTC
+Date/Publication: 2024-04-23 08:20:02 UTC

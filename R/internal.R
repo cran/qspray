@@ -1,3 +1,41 @@
+passShowAttributes <- function(source, target) {
+  showOpts <- attr(source, "showOpts")
+  inheritable <- isTRUE(attr(showOpts, "inheritable")) || 
+    numberOfVariables(source) >= numberOfVariables(target)
+  if(inheritable) {
+    attr(target, "showOpts") <- showOpts
+  } 
+  target
+}
+
+#' @title (internal) Make a 'qspray' object from a list
+#' @description This function is for internal usage. It is exported because 
+#'   it is also used for internal usage in others packages.
+#'
+#' @param qspray_as_list list returned by the Rcpp function 
+#'   \code{returnQspray}
+#'
+#' @return A \code{qspray} object.
+#' @export
+qspray_from_list <- function(qspray_as_list) {
+  powers <- qspray_as_list[["powers"]]
+  if(is.null(powers)) {
+    new(
+      "qspray", 
+      powers = list(), coeffs = character(0L)
+    )
+  } else {
+    new(
+      "qspray", 
+      powers = powers, coeffs = qspray_as_list[["coeffs"]]
+    )
+  }
+}
+
+`%||%` <- function(x, y) {
+  if(is.null(x)) y else x
+}
+
 isString <- function(x) {
   is.character(x) && length(x) == 1L && !is.na(x)
 }
@@ -44,6 +82,10 @@ isFraction <- function(x) {
   }
 }
 
+isFractionOrNA <- function(x) {
+  is.na(x) || isFraction(x)
+}
+
 isExponents <- function(x) {
   is.numeric(x) && !anyNA(x) && all(floor(x) == x)
 }
@@ -58,15 +100,21 @@ isPartition <- function(lambda){
     all(diff(lambda) <= 0)
 }
 
-lexorder <- function(M) {
-  do.call(
-    order, 
-    c(lapply(seq_len(ncol(M)), function(i) M[, i]), decreasing = TRUE)
-  )
-}
-
 arity <- function(qspray) {
   suppressWarnings(max(lengths(qspray@powers)))
+}
+
+grow <- function(powers, n) {
+  c(powers, integer(n - length(powers)))
+}
+
+powersMatrix <- function(qspray) {
+  n <- arity(qspray)
+  if(n == -Inf) {
+    matrix(NA_integer_, 0L, 0L)
+  } else {
+    do.call(rbind, lapply(qspray@powers, grow, n = n))
+  }
 }
 
 #' @importFrom utils head
@@ -78,3 +126,37 @@ removeTrailingZeros <- function(x) {
   }
   head(x, n)
 }
+
+isPermutation <- function(x) {
+  setequal(x, seq_along(x))
+}
+
+fromString <- function(string) {
+  as.integer(strsplit(string, ",", fixed = TRUE)[[1L]])
+}
+
+Columns <- function(M) {
+  lapply(seq_len(ncol(M)), function(j) {
+    M[, j]
+  })
+}
+
+Rows <- function(M) {
+  lapply(seq_len(nrow(M)), function(i) {
+    M[i, ]
+  })
+}
+
+lexorder <- function(M){
+  do.call(
+    function(...) order(..., decreasing = TRUE), 
+    Columns(M)
+  )
+}
+
+# lexorder <- function(M) {
+#   do.call(
+#     order, 
+#     c(lapply(seq_len(ncol(M)), function(i) M[, i]), decreasing = TRUE)
+#   )
+# }
