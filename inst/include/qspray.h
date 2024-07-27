@@ -1,8 +1,9 @@
 #ifndef ___QSPRAY___
 #define ___QSPRAY___
 
-#undef Rcpp_hpp
-#include <RcppArmadillo.h>
+//#undef Rcpp_hpp
+//#include <RcppArmadillo.h>
+#include <Rcpp.h>
 #include <boost/multiprecision/gmp.hpp>
 //#include <complex.h>
 typedef std::vector<signed int>                             powers;
@@ -539,24 +540,40 @@ namespace QSPRAY {
 
     static int lexLeadingIndex(std::vector<powers> expnts) {
       const int n = expnts.size();
-      int i = 0;
-      while(i < n-1) {
-        powers vi = expnts[i];
-        for(int j = i + 1; j < n; j++) {
-          powers vj = expnts[j];
-          bool vjmax = std::lexicographical_compare(
-            std::begin(vi), std::end(vi), std::begin(vj), std::end(vj)
-          );
-          if(vjmax) {
-            i = j - 1;
-            break;
-          } else if(j == n-1) {
-            return i;
-          }
-        }
-        i++;
+      if(n == 1) {
+        return 0;
       }
-      return i;
+      powers v0 = expnts[0];
+      int out = 0;
+      for(int i = 1; i < n; i++) {
+        powers vi = expnts[i];
+        bool vimax = std::lexicographical_compare(
+          std::begin(v0), std::end(v0), std::begin(vi), std::end(vi)
+        );
+        if(vimax) {
+          out = i;
+          v0 = vi;
+        }
+      }
+      return out;
+      // int i = 0;
+      // while(i < n-1) {
+      //   powers vi = expnts[i];
+      //   for(int j = i + 1; j < n; j++) {
+      //     powers vj = expnts[j];
+      //     bool vjmax = std::lexicographical_compare(
+      //       std::begin(vi), std::end(vi), std::begin(vj), std::end(vj)
+      //     );
+      //     if(vjmax) {
+      //       i = j - 1;
+      //       break;
+      //     } else if(j == n-1) {
+      //       return i;
+      //     }
+      //   }
+      //   i++;
+      // }
+      // return i;
     }
 
     static Rcpp::List leadingTerm(Qspray<gmpq>& Q, int d) {

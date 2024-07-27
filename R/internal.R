@@ -94,10 +94,14 @@ isCoeffs <- function(x) {
   all(vapply(as.character(x), isFraction, FUN.VALUE = logical(1L)))
 }
 
+isDecreasing <- function(x) {
+  all(diff(x) <= 0)
+}
+
 isPartition <- function(lambda){
   length(lambda) == 0L || 
     all(vapply(lambda, isPositiveInteger, FUN.VALUE = logical(1L))) && 
-    all(diff(lambda) <= 0)
+    isDecreasing(lambda)
 }
 
 arity <- function(qspray) {
@@ -109,8 +113,8 @@ grow <- function(powers, n) {
 }
 
 powersMatrix <- function(qspray) {
-  n <- arity(qspray)
-  if(n == -Inf) {
+  n <- numberOfVariables(qspray)
+  if(n == 0L) {
     matrix(NA_integer_, 0L, 0L)
   } else {
     do.call(rbind, lapply(qspray@powers, grow, n = n))
@@ -154,9 +158,21 @@ lexorder <- function(M){
   )
 }
 
-# lexorder <- function(M) {
-#   do.call(
-#     order, 
-#     c(lapply(seq_len(ncol(M)), function(i) M[, i]), decreasing = TRUE)
-#   )
-# }
+# drop the first n variables of a qspray
+# this assumes these variables are not involved in the qspray!
+#' @importFrom utils tail
+#' @noRd
+dropVariables <- function(n, qspray) {
+  powers <- lapply(qspray@powers, function(expnts) {
+    tail(expnts, -n)
+  })
+  new("qspray", powers = powers, coeffs = qspray@coeffs)
+}
+
+isNamedList <- function(x) {
+  is.list(x) && length(names(x)) == length(x)
+}
+
+partitionAsString <- function(lambda) {
+  sprintf("[%s]", toString(lambda))
+}

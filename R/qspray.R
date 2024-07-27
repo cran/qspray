@@ -3,8 +3,13 @@
 #' @importFrom methods setMethod setClass new canCoerce as setGeneric
 #' @importFrom gmp as.bigq factorialZ asNumeric
 #' @importFrom purrr transpose
+#' @importFrom utils globalVariables
 #' @include qspray.R
 NULL
+
+if(getRversion() >= "2.15.1") {
+  globalVariables("showSymbolicQsprayOption<-")
+}
 
 setClass(
   "qspray",
@@ -215,6 +220,16 @@ character_arith_qspray <- function(e1, e2) {
     "+" = as.qspray.character(e1) + e2,
     "-" = as.qspray.character(e1) - e2,
     "*" = as.qspray.character(e1) * e2,
+    "/" = {
+      if(canCoerce(e2, "ratioOfQsprays")) {
+        e1 / as(e2, "ratioOfQsprays") 
+      } else {
+        stop(
+          "Division by a 'qspray' object is possible only with the ",
+          "'ratioOfQsprays' package, and this package is not loaded."
+        )
+      }
+    },
     stop(gettextf(
       "Binary operator %s not defined for these two objects.", dQuote(.Generic)
     ))
@@ -228,6 +243,16 @@ gmp_arith_qspray <- function(e1, e2) {
     "+" = as_qspray_gmp(e1) + e2,
     "-" = as_qspray_gmp(e1) - e2,
     "*" = as_qspray_gmp(e1) * e2,
+    "/" = {
+      if(canCoerce(e2, "ratioOfQsprays")) {
+        e1 / as(e2, "ratioOfQsprays") 
+      } else {
+        stop(
+          "Division by a 'qspray' object is possible only with the ",
+          "'ratioOfQsprays' package, and this package is not loaded."
+        )
+      }
+    },
     stop(gettextf(
       "Binary operator %s not defined for these two objects.", dQuote(.Generic)
     ))
@@ -241,6 +266,16 @@ numeric_arith_qspray <- function(e1, e2) {
     "+" = as.qspray.numeric(e1) + e2,
     "-" = as.qspray.numeric(e1) - e2,
     "*" = as.qspray.numeric(e1) * e2,
+    "/" = {
+      if(canCoerce(e2, "ratioOfQsprays")) {
+        e1 / as(e2, "ratioOfQsprays") 
+      } else {
+        stop(
+          "Division by a 'qspray' object is possible only with the ",
+          "'ratioOfQsprays' package, and this package is not loaded."
+        )
+      }
+    },
     stop(gettextf(
       "Binary operator %s not defined for these two objects.", dQuote(.Generic)
     ))

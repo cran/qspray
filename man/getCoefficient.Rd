@@ -11,24 +11,24 @@
 \arguments{
 \item{qspray}{a \code{qspray} object}
 
-\item{exponents}{a vector of exponents}
+\item{exponents}{a vector of exponents, thereby defining a monomial;
+trailing zeros are ignored}
 }
 \value{
 The coefficient as a \code{bigq} number.
 }
 \description{
-Get the coefficient corresponding to the given sequence of 
-  exponents.
+Get the coefficient of the term with the given monomial.
 }
 \examples{
 library(qspray)
 x <- qlone(1)
 y <- qlone(2)
 p <- 4*x^2 + 3*y - 5
-getCoefficient(p, 2)
-getCoefficient(p, c(2, 0)) # same as getCoefficient(p, 2)
-getCoefficient(p, c(0, 1)) # coefficient of y because y=x^0*y^1
-getCoefficient(p, 0) # the constant term
+getCoefficient(p, 2)          # coefficient of x^2
+getCoefficient(p, c(2, 0))    # same as getCoefficient(p, 2)
+getCoefficient(p, c(0, 1))    # coefficient of y because y=x^0*y^1
+getCoefficient(p, 0)          # the constant term
 getCoefficient(p, integer(0)) # the constant term 
-getCoefficient(p, 3) # there's no cubic term
+getCoefficient(p, 3)          # there's no x^3
 }

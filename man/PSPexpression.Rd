@@ -2,13 +2,12 @@
 % Please edit documentation in R/symmetricPolynomials.R
 \name{PSPexpression}
 \alias{PSPexpression}
-\title{Symmetric polynomial in terms of the power sum polynomials.}
+\title{Symmetric polynomial in terms of the power sum polynomials}
 \usage{
 PSPexpression(qspray)
 }
 \arguments{
-\item{qspray}{a symmetric \code{qspray} polynomial (an error is returned if 
-it is not symmetric)}
+\item{qspray}{a symmetric \code{qspray} polynomial; symmetry is not checked}
 }
 \value{
 A \code{qspray} polynomial, say \eqn{P}, such that 
@@ -19,7 +18,16 @@ A \code{qspray} polynomial, say \eqn{P}, such that
 Expression of a symmetric \code{qspray} polynomial as a 
   polynomial in the power sum polynomials.
 }
-\note{
-This function has been exported because it is used in the \strong{jack} 
-  package.
+\examples{
+# take a symmetric polynomial
+( qspray <- ESFpoly(4, c(2, 1)) + ESFpoly(4, c(2, 2)) )
+# compute the power sum expression
+( pspExpr <- PSPexpression(qspray) )
+# take the involved power sum polynomials
+psPolys <- lapply(1:numberOfVariables(pspExpr), function(i) PSFpoly(4, i))
+# then this should be TRUE:
+qspray == changeVariables(pspExpr, psPolys)
+}
+\seealso{
+\code{\link{PSPcombination}}
 }

@@ -107,3 +107,27 @@ Rcpp::List qspray_power(const Rcpp::List&         Powers,
    Qspray<gmpq> Q = makeQspray(Powers, coeffs);
    return returnQspray(Q.power(n));
 }
+
+// -------------------------------------------------------------------------- //
+// [[Rcpp::export]]
+int lexLeadingIndexCPP(const Rcpp::List& Powers) {
+  int n = Powers.size();
+  if(n == 1) {
+    return 1;
+  }
+  Rcpp::IntegerVector Exponents0 = Powers(0);
+  powers pows0(Exponents0.begin(), Exponents0.end());
+  int out = 0;
+  for(int i = 1; i < n; i++) {
+    Rcpp::IntegerVector Exponents = Powers(i);
+    powers pows(Exponents.begin(), Exponents.end());
+    bool ismax = std::lexicographical_compare(
+      std::begin(pows0), std::end(pows0), std::begin(pows), std::end(pows)
+    );
+    if(ismax) {
+      out = i;
+      pows0 = pows;
+    }      
+  }
+  return out + 1;
+}

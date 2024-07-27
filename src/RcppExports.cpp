@@ -2,6 +2,7 @@
 // Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #include "../inst/include/qspray.h"
+#include <Rcpp.h>
 
 using namespace Rcpp;
 
@@ -10,17 +11,6 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// lexLeadingArma
-unsigned int lexLeadingArma(const arma::umat& M);
-RcppExport SEXP _qspray_lexLeadingArma(SEXP MSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::umat& >::type M(MSEXP);
-    rcpp_result_gen = Rcpp::wrap(lexLeadingArma(M));
-    return rcpp_result_gen;
-END_RCPP
-}
 // qsprayDivisionRcpp
 Rcpp::List qsprayDivisionRcpp(Rcpp::List Powers1, Rcpp::StringVector coeffs1, Rcpp::List Powers2, Rcpp::StringVector coeffs2);
 RcppExport SEXP _qspray_qsprayDivisionRcpp(SEXP Powers1SEXP, SEXP coeffs1SEXP, SEXP Powers2SEXP, SEXP coeffs2SEXP) {
@@ -158,9 +148,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// lexLeadingIndexCPP
+int lexLeadingIndexCPP(const Rcpp::List& Powers);
+RcppExport SEXP _qspray_lexLeadingIndexCPP(SEXP PowersSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type Powers(PowersSEXP);
+    rcpp_result_gen = Rcpp::wrap(lexLeadingIndexCPP(Powers));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_qspray_lexLeadingArma", (DL_FUNC) &_qspray_lexLeadingArma, 1},
     {"_qspray_qsprayDivisionRcpp", (DL_FUNC) &_qspray_qsprayDivisionRcpp, 4},
     {"_qspray_BBdivisionRcpp", (DL_FUNC) &_qspray_BBdivisionRcpp, 5},
     {"_qspray_evalQxspray", (DL_FUNC) &_qspray_evalQxspray, 4},
@@ -171,6 +171,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_qspray_qspray_mult", (DL_FUNC) &_qspray_qspray_mult, 4},
     {"_qspray_qspray_equality", (DL_FUNC) &_qspray_qspray_equality, 4},
     {"_qspray_qspray_power", (DL_FUNC) &_qspray_qspray_power, 3},
+    {"_qspray_lexLeadingIndexCPP", (DL_FUNC) &_qspray_lexLeadingIndexCPP, 1},
     {NULL, NULL, 0}
 };
 

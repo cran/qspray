@@ -8,26 +8,68 @@
 #   )
 # }
 
-lexLeading <- function(M, i = 1L, b = seq_len(nrow(M))) {
-  if(nrow(M) == 1L || i > ncol(M)) {
-    b[1L]
+# lexLeading <- function(M, i = 1L, b = seq_len(nrow(M))) {
+#   if(nrow(M) == 1L || i > ncol(M)) {
+#     b[1L]
+#   } else {
+#     col_i <- M[, i]
+#     mx <- max(col_i) == col_i
+#     lexLeading(M[mx, , drop = FALSE], i + 1L, b[mx])
+#   }
+# }
+
+leading <- function(qspray, d) {
+  # powers <- qspray@powers
+  # Mpowers <- do.call(rbind, lapply(powers, grow, n = d))
+  # i <- lexLeadingArma(Mpowers)
+  # list("powers" = Mpowers[i, ], "coeff" = qspray@coeffs[i])
+  powers <- qspray@powers
+  i <- lexLeadingIndexCPP(powers)
+  list("powers" = grow(powers[[i]], d), "coeff" = qspray@coeffs[i])
+}
+
+#' @title Leading term of a 'qspray' polynomial
+#' @description Returns the leading term of a \code{qspray} polynomial.
+#' 
+#' @param qspray a \code{qspray} object
+#'
+#' @return A list providing the exponents of the leading term in the field 
+#'   \code{powers}, an integer vector, and the coefficient of the leading term 
+#'   in the field \code{coeff}, a \code{bigq} rational number.
+#' @export
+leadingTerm <- function(qspray) {
+  if(isQzero(qspray)) {
+    NULL
   } else {
-    col_i <- M[, i]
-    mx <- max(col_i) == col_i
-    lexLeading(M[mx, , drop = FALSE], i + 1L, b[mx])
+    powers <- qspray@powers
+    i <- lexLeadingIndexCPP(powers)
+    list("powers" = powers[[i]], "coeff" = as.bigq(qspray@coeffs[i]))
   }
 }
 
-leading <- function(qspray, d) {
+.leadingTerm <- function(qspray, d) {
+  # l <- leading(qspray, d)
+  # list("powers" = l[["powers"]], "coeff" = as.bigq(l[["coeff"]]))
   powers <- qspray@powers
-  Mpowers <- do.call(rbind, lapply(powers, grow, n = d))
-  i <- lexLeadingArma(Mpowers)
-  list("powers" = Mpowers[i, ], "coeff" = qspray@coeffs[i])
+  i <- lexLeadingIndexCPP(powers)
+  list("powers" = grow(powers[[i]], d), "coeff" = as.bigq(qspray@coeffs[i]))
 }
 
-leadingTerm <- function(qspray, d) {
-  l <- leading(qspray, d)
-  list("powers" = l[["powers"]], "coeff" = as.bigq(l[["coeff"]]))
+#' @title Leading coefficient of a 'qspray' polynomial
+#' @description Returns the leading coefficient of a \code{qspray} polynomial.
+#' 
+#' @param qspray a \code{qspray} object
+#'
+#' @return The coefficient of the leading term of \code{qspray},
+#'   a \code{bigq} rational number.
+#' @export
+leadingCoefficient <- function(qspray) {
+  if(isQzero(qspray)) {
+    as.bigq(0L)
+  } else {
+    i <- lexLeadingIndexCPP(qspray@powers)
+    as.bigq(qspray@coeffs[i])
+  }
 }
 
 coeffInverse <- function(coeff) {
@@ -41,7 +83,7 @@ coeffInverse <- function(coeff) {
 
 # S polynomial ####
 S <- function(f, g) {
-  d <- max(arity(f), arity(g))
+  d <- max(numberOfVariables(f), numberOfVariables(g))
   leading_f <- leading(f, d)
   leading_g <- leading(g, d)
   lpows_f <- leading_f[["powers"]]
@@ -96,10 +138,10 @@ termAsQspray <- function(term) {
 #' qdivision(f, list(g)) # should be zero
 qdivision <- function(qspray, divisors) {
   stopifnot(is.list(divisors))
-  if(qspray == qzero()) {
+  if(isQzero(qspray)) {
     return(qzero())
   }
-  d <- max(vapply(divisors, arity, integer(1L)))
+  d <- max(vapply(divisors, numberOfVariables, integer(1L)))
   LTdivisors <- lapply(divisors, leading, d = d)
   BBdivision(qspray, divisors, LTdivisors)
   
@@ -124,7 +166,7 @@ qdivision <- function(qspray, divisors) {
   #   i <- 1L
   #   while(i <= ndivisors) {
   #     g <- divisors[[i]]
-  #     LT_g <- leadingTerm(g, d)
+  #     LT_g <- .leadingTerm(g, d)
   #     while(divides(LT_g, LT_cur)) {
   #       q <- quotient(LT_cur, LT_g)
   #       quotients <- append(quotients, q)
@@ -148,7 +190,7 @@ qdivision <- function(qspray, divisors) {
   #         }
   #         return(remainder)
   #       }
-  #       LT_cur <- leadingTerm(cur, d)
+  #       LT_cur <- .leadingTerm(cur, d)
   #     }
   #     i <- i + 1L
   #   }
@@ -175,11 +217,14 @@ qdivision <- function(qspray, divisors) {
 
 # internal division for Buchberger algorithm
 BBdivision <- function(qspray, divisors, LTdivisors) {
-  if(qspray == qzero()) {
+  if(isQzero(qspray)) {
     return(qzero())
   }
   # we store the successive leading terms in LTs_f
-  d <- max(arity(qspray), max(vapply(divisors, arity, integer(1L))))
+  d <- max(
+    numberOfVariables(qspray), 
+    max(vapply(divisors, numberOfVariables, integer(1L)))
+  )
   # oqspray <- orderedQspray(qspray, d)
   # opowers <- oqspray[["powers"]]
   # ocoeffs <- oqspray[["coeffs"]]
@@ -208,11 +253,11 @@ combn2 <- function(j, s) {
 #' @title Gröbner basis
 #' @description Returns a Gröbner basis following Buchberger's algorithm 
 #'   using the lexicographical order.
-#' @param G a list of qspray polynomials, the generators of the ideal
+#' @param G a list of \code{qspray} polynomials, the generators of the ideal
 #' @param minimal Boolean, whether to return a minimal basis
 #' @param reduced Boolean, whether to return the reduced basis
 #' @return A Gröbner basis of the ideal generated by \code{G}, given as a list 
-#'   of qspray polynomials.
+#'   of \code{qspray} polynomials.
 #' @export
 #' @references 
 #' Cox, Little & O'Shea. 
@@ -229,10 +274,8 @@ combn2 <- function(j, s) {
 #' f1 <- x^2 + y + z^2 - 1
 #' f2 <- x^2 + y + z - 1
 #' f3 <- x + y^2 + z - 1
-#' gb <- groebner(list(f1, f2, f3))
-#' lapply(gb, prettyQspray, vars = c("x", "y", "z"))}
+#' groebner(list(f1, f2, f3))}
 groebner <- function(G, minimal = TRUE, reduced = TRUE) {
-  # d <- max(vapply(G, arity, integer(1L)))
   d <- max(vapply(G, numberOfVariables, integer(1L)))
   LT_G <- lapply(G, leading, d = d)
   Ss <- list()
@@ -243,11 +286,11 @@ groebner <- function(G, minimal = TRUE, reduced = TRUE) {
   while(i <= l) {
     combin <- combins[, i]
     Sfg <- S(G[[combin[1L]]], G[[combin[2L]]])
-    d <- max(d, arity(Sfg))
+    d <- max(d, numberOfVariables(Sfg))
     Sbar_fg <- BBdivision(Sfg, G, LT_G)
-    if(Sbar_fg != qzero()) {
+    if(!isQzero(Sbar_fg)) {
       G <- append(G, Sbar_fg)
-	    d <- max(d, arity(Sbar_fg))
+	    d <- max(d, numberOfVariables(Sbar_fg))
       LT_G <- append(LT_G, list(leading(Sbar_fg, d)))
       j <- j + 1L
       combins <- combn2(j, i)
@@ -259,14 +302,14 @@ groebner <- function(G, minimal = TRUE, reduced = TRUE) {
   }
   #
   if(minimal || reduced) {
-    d <- max(vapply(G, arity, integer(1L)))
+    d <- max(vapply(G, numberOfVariables, integer(1L)))
     indices <- seq_along(G)
     toRemove <- drop <- integer(0L)
     for(i in indices) {
-      LT_f <- leadingTerm(G[[i]], d)
+      LT_f <- .leadingTerm(G[[i]], d)
       drop <- c(toRemove, i)
       for(j in setdiff(indices, drop)) {
-        if(divides(leadingTerm(G[[j]], d), LT_f)) {
+        if(divides(.leadingTerm(G[[j]], d), LT_f)) {
           toRemove <- c(toRemove, i)
           break
         }
@@ -276,7 +319,7 @@ groebner <- function(G, minimal = TRUE, reduced = TRUE) {
     if(length(toRemove) > 0L) {
       G <- G[-toRemove]
       for(i in seq_along(G)) {
-        G[[i]] <- G[[i]] / leadingTerm(G[[i]], d)[["coeff"]]
+        G[[i]] <- G[[i]] / leadingCoefficient(G[[i]])
       }
     }
     # reduction
@@ -293,17 +336,18 @@ groebner <- function(G, minimal = TRUE, reduced = TRUE) {
 
 #' @title Implicitization with Gröbner bases
 #' @description Implicitization of a system of parametric equations 
-#'   (see examples).
+#'   (see example).
 #'
 #' @param nvariables number of variables
 #' @param parameters character vector of the names of the parameters, or 
 #'   \code{NULL} if there's no parameter
-#' @param equations list of qspray polynomials representing the parametric 
-#'   equations
-#' @param relations list of qspray polynomials representing the relations 
-#'   between the variables and the parameters, or \code{NULL} if there is none
+#' @param equations named list of \code{qspray} polynomials representing the 
+#'   parametric equations
+#' @param relations list of \code{qspray} polynomials representing the relations 
+#'   between the variables and between the parameters, or \code{NULL} if there 
+#'   is none
 #'
-#' @return A list of qspray polynomials.
+#' @return A list of \code{qspray} polynomials.
 #' @export
 #' @importFrom utils tail
 #'
@@ -313,12 +357,12 @@ groebner <- function(G, minimal = TRUE, reduced = TRUE) {
 #' # variables 
 #' cost <- qlone(1)
 #' sint <- qlone(2)
+#' nvariables <- 2
 #' # parameters
 #' a <- qlone(3)
 #' b <- qlone(4)
-#' #
-#' nvariables <- 2
 #' parameters <- c("a", "b")
+#' #
 #' equations <- list(
 #'   "x" = a * cost,
 #'   "y" = b * sint
@@ -327,16 +371,16 @@ groebner <- function(G, minimal = TRUE, reduced = TRUE) {
 #'   cost^2 + sint^2 - 1
 #' )
 #' # 
-#' eqs <- implicitization(nvariables, parameters, equations, relations)
+#' implicitization(nvariables, parameters, equations, relations)
 implicitization <- function(nvariables, parameters, equations, relations) {
   stopifnot(isPositiveInteger(nvariables))
   stopifnot(is.null(parameters) || isStringVector(parameters))
-  stopifnot(is.list(equations), length(equations) > 1L)
+  stopifnot(isNamedList(equations), length(equations) > 1L)
   stopifnot(is.null(relations) || is.list(relations))
   #
   nequations <- length(equations)
   nrelations <- length(relations)
-  nqlone <- max(vapply(equations, arity, integer(1L)))
+  nqlone <- max(vapply(equations, numberOfVariables, integer(1L)))
   coordinates <- lapply((nqlone+1L):(nqlone+nequations), qlone)
   generators <- relations
   for(i in seq_along(equations)) {
@@ -344,30 +388,20 @@ implicitization <- function(nvariables, parameters, equations, relations) {
   }
   #
   gb <- groebner(generators)
-  isfree <- function(i) {
-    all(vapply(gb[[i]]@powers, function(pows) {
-      length(pows) == 0L || 
-        (length(pows > nvariables) && all(pows[1L:nvariables] == 0L))
-    }, logical(1L)))
+  isfree <- function(qspray) {
+    !any(is.element(1L:nvariables, involvedVariables(qspray)))
   }
-  free <- c(FALSE, vapply(2L:length(gb), isfree, logical(1L)))
+  results <- Filter(isfree, gb)
+  results <- lapply(results, function(qspray) {
+    dropVariables(nvariables, qspray)
+  })
   #
-  results <- gb[free]
-  for(i in seq_along(results)) {
-    el <- results[[i]]
-    coeffs <- el@coeffs
-    powers <- el@powers
-    for(j in seq_along(powers)) {
-      powers[[j]] <- tail(powers[[j]], -nvariables)
-    }
-    results[[i]] <- qsprayMaker(powers, coeffs)
-  }
   vars <- c(parameters, names(equations))
-  messages <- lapply(results, prettyQspray, vars = vars)
-  for(msg in messages) {
-    message(msg)
-  }
-  invisible(results)
+  showFunc <- showQsprayXYZ(vars)
+  lapply(results, function(qspray) {
+    showQsprayOption(qspray, "showQspray") <- showFunc
+    qspray
+  })
 }
 
 #' @title Whether a 'qspray' is a polynomial of some given 'qsprays'
@@ -387,15 +421,19 @@ implicitization <- function(nvariables, parameters, equations, relations) {
 #'
 #' @examples
 #' library(qspray)
-#' P <- function(X, Y) X^2*Y + 2*X + 3
 #' x <- qlone(1); y <- qlone(2); z <- qlone(3)
 #' q1 <- x + y
 #' q2 <- x*z^2 + 4
-#' qspray <- P(q1, q2)
+#' qspray <- q1^2*q2 + 2*q1 + 3
 #' ( check <- isPolynomialOf(qspray, list(q1, q2)) )
 #' POLYNOMIAL <- attr(check, "polynomial")
-#' composeQspray(POLYNOMIAL, list(q1, q2)) == qspray # should be TRUE
+#' changeVariables(POLYNOMIAL, list(q1, q2)) == qspray # should be TRUE
 isPolynomialOf <- function(qspray, qsprays) {
+  if(isConstant(qspray)) {
+    out <- TRUE
+    attr(out, "polynomial") <- qspray
+    return(out)
+  }
   n <- max(vapply(qsprays, numberOfVariables, integer(1L)))
   if(numberOfVariables(qspray) > n) {
     return(FALSE)
@@ -403,18 +441,13 @@ isPolynomialOf <- function(qspray, qsprays) {
   i_ <- seq_len(length(qsprays))
   G <- lapply(i_, function(i) qsprays[[i]] - qlone(n + i))
   B <- groebner(G, TRUE, FALSE)
-  constantTerm <- getCoefficient(qspray, integer(0L))
+  constantTerm <- getConstantTerm(qspray)
   g <- qdivision(qspray - constantTerm, B)
-  check <- all(vapply(g@powers, function(pwr) {
-    length(pwr) > n && all(pwr[1L:n] == 0L)
-  }, logical(1L)))
+  check <- !any(is.element(1L:n, involvedVariables(g)))
   if(!check) {
     return(FALSE)
   }
-  powers <- lapply(g@powers, function(pwr) {
-    pwr[-(1L:n)]
-  })
-  P <- qsprayMaker(powers, g@coeffs) + constantTerm
+  P <- dropVariables(n, g) + constantTerm
   out <- TRUE
   attr(out, "polynomial") <- P
   out
